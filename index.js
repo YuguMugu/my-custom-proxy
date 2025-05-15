@@ -1,29 +1,21 @@
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
+
 const app = express();
+
+// Proxy any requests that start with /proxy to the target URL
+app.use('/proxy', createProxyMiddleware({
+  target: '', // target will be dynamic based on query
+  changeOrigin: true,
+  router: function(req) {
+    // Get the 'url' query parameter and use that as the target
+    const targetUrl = req.query.url;
+    return targetUrl;
+  }
+}));
+
+// Listen on the port Railway provides or default to 3000 locally
 const PORT = process.env.PORT || 3000;
-
-// Serve static homepage
-app.use(express.static('static'));
-
-// Proxy middleware: forward requests starting with /proxy
-app.use('/proxy', (req, res, next) => {
-  const target = req.query.url;
-  if (!target) return res.status(400).send('Missing url query parameter');
-
-  // Proxy the target URL, rewrite path to '/'
-  createProxyMiddleware({
-    target,
-    changeOrigin: true,
-    pathRewrite: {'^/proxy': ''},
-    onError: (err, req, res) => {
-      res.status(500).send('Proxy error: ' + err.message);
-    }
-  })(req, res, next);
-});
-
-// Start server
 app.listen(PORT, () => {
-  console.log(`Minimal proxy running on port ${PORT}`);
+  console.log(`Proxy server running on port ${PORT}`);
 });
-
